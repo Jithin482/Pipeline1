@@ -1,6 +1,5 @@
-name: Push-to-EC2
+name: Deploy Infrastructure and Docker Container
 
-# Trigger deployment only on push to main branch
 on:
   push:
     branches:
@@ -8,55 +7,50 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2 on main branch push
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the files
+      # Step 1: Checkout the repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Deploy code to EC2
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
-
-      - name: Install Docker and deploy website using Docker
-        uses: appleboy/ssh-action@master
+      # Step 2: Set up Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
         with:
-          host: ${{ secrets.HOST_DNS }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # Update and install dependencies
-            sudo apt-get -y update
-            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+          terraform_version: 1.5.0
 
-            # Add Docker's official GPG key
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      # Step 3: Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
 
-            # Add Docker repository
-            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      # Step 4: Validate Terraform configuration
+      - name: Terraform Validate
+        run: terraform validate
 
-            # Install Docker
-            sudo apt-get -y update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      # Step 5: Apply Terraform to provision infrastructure
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-            # Ensure Docker is running
-            sudo systemctl start docker
-            sudo systemctl enable docker
+      # Step 6: Install Ansible
+      - name: Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
 
-            # Create a directory for website files
-            sudo mkdir -p /var/www/html
-            sudo chmod -R 755 /var/www/html
+      # Step 7: Run Ansible playbook to configure the server
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i ${{ secrets.EC2_PUBLIC_IP }}, -u ubuntu --private-key ./my-key.pem ansible/playbook.yml
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: False
 
-            # Copy website files to the target directory
-            sudo cp -r ${{ secrets.TARGET_DIR }}/* /var/www/html/
-
-            # Run a Docker container to host the website
-            sudo docker run -d --name nginx_website -p 80:80 -v /var/www/html:/usr/share/nginx/html nginx
-
-            # Clean up unused Docker images
-            sudo docker system prune -f
+      # Step 8: Deploy Docker container
+      - name: Deploy Docker Container
+        run: |
+          ssh -i ./my-key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+          sudo docker run -d --name myapp -p 80:80 my-docker-image
+          EOF
