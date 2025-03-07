@@ -8,14 +8,14 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
+    name: Deploy to EC2 on main branch push
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout the files
         uses: actions/checkout@v2
 
-      - name: Deploy to Server 1
+      - name: Deploy code to EC2
         uses: easingthemes/ssh-deploy@main
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -23,16 +23,40 @@ jobs:
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
 
-      - name: Executing remote ssh commands using ssh key
+      - name: Install Docker and deploy website using Docker
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Update and install dependencies
             sudo apt-get -y update
-            sudo apt-get install -y apache2
-            sudo systemctl start apache2
-            sudo systemctl enable apache2
-            cd home
-            sudo mv * /var/www/html
+            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+            # Add Docker's official GPG key
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+            # Add Docker repository
+            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+            # Install Docker
+            sudo apt-get -y update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+            # Ensure Docker is running
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            # Create a directory for website files
+            sudo mkdir -p /var/www/html
+            sudo chmod -R 755 /var/www/html
+
+            # Copy website files to the target directory
+            sudo cp -r ${{ secrets.TARGET_DIR }}/* /var/www/html/
+
+            # Run a Docker container to host the website
+            sudo docker run -d --name nginx_website -p 80:80 -v /var/www/html:/usr/share/nginx/html nginx
+
+            # Clean up unused Docker images
+            sudo docker system prune -f
