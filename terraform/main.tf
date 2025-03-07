@@ -61,7 +61,7 @@ resource "aws_security_group" "my_sg" {
 
 # Create an EC2 Instance
 resource "aws_instance" "my_server" {
-  ami           = "ami-0c55b159cbfafe1f0"  # Replace with your desired AMI ID
+  ami           = "ami-03fd334507439f4d1"  # Replace with your desired AMI ID
   instance_type = "t2.micro"               # Replace with your desired instance type
   subnet_id     = aws_subnet.pubsubnet1.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
