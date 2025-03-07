@@ -13,11 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # Initialize and apply Terraform configuration
       - name: Terraform Init
         run: terraform init
         working-directory: ./terraform
@@ -29,8 +27,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Get the public IP of the EC2 instance
-    - name: Get Public IP
+      - name: Get Public IP
         id: get_ip
         run: |
           PUBLIC_IP=$(terraform output -raw public_ip | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
@@ -40,16 +37,12 @@ jobs:
       - name: Print Public IP
         run: echo "Public IP: ${{ env.PUBLIC_IP }}"
 
-      # Install Ansible
       - name: Install Ansible
         run: sudo apt-get install -y ansible
 
-      # Run Ansible playbook
       - name: Run Ansible Playbook
-        run: ansible-playbook -i "${{ env.PUBLIC_IP }}," ansible.yml --user ubuntu --private-key ${{ secrets.PRIVATE_KEY }}
-        working-directory: ./ansible
+        run: ansible-playbook -i "${{ env.PUBLIC_IP }}," ansible/ansible.yml --user ubuntu --private-key ${{ secrets.PRIVATE_KEY }}
 
-      # Build and deploy Docker container
       - name: Build and Deploy Docker Container
         run: |
           ssh -i ${{ secrets.PRIVATE_KEY }} ubuntu@${{ env.PUBLIC_IP }} "
