@@ -1,0 +1,64 @@
+---
+- name: Configure EC2 instance and install Docker
+  hosts: all
+  become: yes  # Run tasks with sudo privileges
+  tasks:
+    # Step 1: Update apt package cache
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    # Step 2: Install required system packages
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    # Step 3: Add Docker's official GPG key
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    # Step 4: Add Docker repository
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+
+    # Step 5: Install Docker
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    # Step 6: Ensure Docker service is running and enabled
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # Step 7: Add the current user to the Docker group (optional)
+    - name: Add user to Docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # Step 8: Verify Docker installation
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      debug:
+        msg: "Docker version: {{ docker_version.stdout }}"
