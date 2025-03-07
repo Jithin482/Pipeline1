@@ -1,0 +1,65 @@
+---
+- name: Install Docker and deploy a website
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install required system packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Ensure Docker service is running and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull a web server Docker image (e.g., Nginx)
+      docker_image:
+        name: nginx
+        source: pull
+
+    - name: Create a directory for website files
+      file:
+        path: /var/www/html
+        state: directory
+        mode: '0755'
+
+    - name: Copy website files to the EC2 instance
+      copy:
+        src: ./website_files/
+        dest: /var/www/html/
+        mode: '0644'
+
+    - name: Run a Docker container to host the website
+      docker_container:
+        name: nginx_website
+        image: nginx
+        ports:
+          - "80:80"
+        volumes:
+          - /var/www/html:/usr/share/nginx/html
+        state: started
