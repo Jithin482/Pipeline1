@@ -1,11 +1,12 @@
 # Provider Configuration
 provider "aws" {
-  region     = "eu-west-1"  # Replace with your desired region
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
+  region = "eu-west-1"  # Replace with your desired region
+
+  # Avoid hardcoding credentials in the configuration file.
+  # Use environment variables or a shared credentials file instead.
+  # access_key = var.aws_access_key
+  # secret_key = var.aws_secret_key
 }
-
-
 
 # Create a VPC
 resource "aws_vpc" "my_vpc" {
@@ -64,13 +65,8 @@ resource "aws_instance" "my_server" {
   subnet_id     = aws_subnet.pubsubnet1.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
   associate_public_ip_address = true
+
   tags = {
     Name = "Terraform1"
   }
 }
-- name: Terraform Apply
-  run: terraform apply -auto-approve
-  working-directory: ./terraform
-  env:
-    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
