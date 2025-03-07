@@ -36,7 +36,7 @@ jobs:
 
       - name: Print Public IP
         run: echo "Public IP: ${{ env.PUBLIC_IP }}"
-
+        
       - name: Install Ansible
         run: sudo apt-get update && sudo apt-get install -y ansible
 
