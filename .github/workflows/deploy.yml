@@ -1,4 +1,5 @@
-name: Deploy Infrastructure and Docker Container
+# .github/workflows/deploy.yml
+name: Deploy Infrastructure and Application
 
 on:
   push:
@@ -10,57 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      # Step 2: Set up Terraform
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.5.0
+        uses: hashicorp/setup-terraform@v2
 
-      # Step 3: Initialize Terraform with AWS credentials
       - name: Terraform Init
         run: terraform init
-        working-directory: ./terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Step 4: Validate Terraform configuration
-      - name: Terraform Validate
-        run: terraform validate
-        working-directory: ./terraform
-
-      # Step 5: Apply Terraform to provision infrastructure
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: ./terraform
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # Step 6: Install Ansible
+      - name: Get Public IP
+        id: get_ip
+        run: echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
       - name: Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+        run: sudo apt-get install -y ansible
 
-      # Step 7: Run Ansible playbook to configure the server
       - name: Run Ansible Playbook
-        run: |
-          echo "${{ secrets.PRIVATE_KEY }}" > my-key
-          chmod 600 my-key
-          ansible-playbook -i ${{ secrets.EC2_PUBLIC_IP }}, -u ubuntu --private-key ./my-key ansible/playbook.yml
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: False
+        run: ansible-playbook -i "${{ env.PUBLIC_IP }}," ansible-playbook.yml --user ubuntu --private-key ${{ secrets.PRIVATE_KEY }}
 
-      # Step 8: Deploy Docker container
-      - name: Deploy Docker Container
+      - name: Build and Deploy Docker Container
         run: |
-          echo "${{ secrets.PRIVATE_KEY }}" > my-key
-          chmod 600 my-key
-          ssh -i ./my-key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-          sudo docker run -d --name myapp -p 80:80 my-docker-image
-          EOF
+          ssh -i ${{ secrets.PRIVATE_KEY }} ubuntu@${{ env.PUBLIC_IP }} "
+            docker build -t my-app .
+            docker run -d -p 80:80 my-app
+          "
