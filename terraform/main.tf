@@ -54,3 +54,10 @@ resource "aws_security_group" "my_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+terraform {
+  backend "s3" {
+    bucket = "my-terraform-state-bucket482"  # Replace with your bucket name
+    key    = "path/to/terraform.tfstate"  # Replace with your desired path
+    region = "eu-west-1"
+  }
+}
