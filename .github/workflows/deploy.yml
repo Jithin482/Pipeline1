@@ -23,20 +23,20 @@ jobs:
       # Step 3: Initialize Terraform
       - name: Terraform Init
         run: terraform init
-        working-directory: ./terraform  # Specify the Terraform directory
+        working-directory: ./terraform
 
       # Step 4: Validate Terraform configuration
       - name: Terraform Validate
         run: terraform validate
-        working-directory: ./terraform  # Specify the Terraform directory
+        working-directory: ./terraform
 
       # Step 5: Apply Terraform to provision infrastructure
       - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: ./terraform  # Specify the Terraform directory
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -var="aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        working-directory: ./terraform
 
       # Step 6: Install Ansible
       - name: Install Ansible
@@ -47,13 +47,17 @@ jobs:
       # Step 7: Run Ansible playbook to configure the server
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i ${{ secrets.EC2_PUBLIC_IP }}, -u ubuntu --private-key ./my-key.pem ansible/playbook.yml
+          echo "${{ secrets.PRIVATE_KEY }}" > my-key
+          chmod 600 my-key
+          ansible-playbook -i ${{ secrets.EC2_PUBLIC_IP }}, -u ubuntu --private-key ./my-key ansible/playbook.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: False
 
       # Step 8: Deploy Docker container
       - name: Deploy Docker Container
         run: |
-          ssh -i ./my-key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+          echo "${{ secrets.PRIVATE_KEY }}" > my-key
+          chmod 600 my-key
+          ssh -i ./my-key -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
           sudo docker run -d --name myapp -p 80:80 my-docker-image
           EOF
