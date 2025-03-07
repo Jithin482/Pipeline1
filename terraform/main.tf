@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "my-terraform-state-bucket"  # Replace with your S3 bucket name
+    bucket = "my-terraform-state-bucket482"  # Replace with your S3 bucket name
     key    = "path/to/terraform.tfstate"  # Replace with your desired path
     region = "eu-west-1"                  # Replace with your bucket's region
   }
