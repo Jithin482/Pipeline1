@@ -42,12 +42,16 @@ jobs:
 
       - name: Run Ansible Playbook
         run: |
+          echo "${{ secrets.PRIVATE_KEY }}" | base64 --decode > private_key.pem
+          chmod 600 private_key.pem
           ansible-playbook -i "${{ env.PUBLIC_IP }}," ansible/ansible.yml \
-            --user ubuntu --private-key <(echo "${{ secrets.PRIVATE_KEY }}")
+            --user ubuntu --private-key private_key.pem
 
       - name: Build and Deploy Docker Container
         run: |
-          ssh -o StrictHostKeyChecking=no -i <(echo "${{ secrets.PRIVATE_KEY }}") ubuntu@${{ env.PUBLIC_IP }} "
+          echo "${{ secrets.PRIVATE_KEY }}" | base64 --decode > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ubuntu@${{ env.PUBLIC_IP }} "
             docker build -t my-app .
             docker run -d -p 80:80 my-app
           "
