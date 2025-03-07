@@ -1,18 +1,15 @@
 # Provider Configuration
 provider "aws" {
   region = "eu-west-1"  # Replace with your desired region
-
-  # Avoid hardcoding credentials in the configuration file.
-  # Use environment variables or a shared credentials file instead.
-  # access_key = var.aws_access_key
-  # secret_key = var.aws_secret_key
 }
 
 # Create a VPC
 resource "aws_vpc" "my_vpc" {
   cidr_block = "10.0.0.0/16"
   tags = {
-    Name = "my-vpc"
+    Name        = "my-vpc"
+    Environment = "dev"
+    Project     = "terraform-assignment"
   }
 }
 
@@ -21,7 +18,9 @@ resource "aws_subnet" "pubsubnet1" {
   vpc_id     = aws_vpc.my_vpc.id
   cidr_block = "10.0.1.0/24"
   tags = {
-    Name = "pubsubnet1"
+    Name        = "pubsubnet1"
+    Environment = "dev"
+    Project     = "terraform-assignment"
   }
 }
 
@@ -54,19 +53,28 @@ resource "aws_security_group" "my_sg" {
   }
 
   tags = {
-    Name = "my-security-group"
+    Name        = "my-security-group"
+    Environment = "dev"
+    Project     = "terraform-assignment"
   }
 }
 
 # Create an EC2 Instance
 resource "aws_instance" "my_server" {
-  ami           = "ami-03fd334507439f4d1"  # Replace with your desired AMI
+  ami           = "ami-0c55b159cbfafe1f0"  # Replace with your desired AMI ID
   instance_type = "t2.micro"               # Replace with your desired instance type
   subnet_id     = aws_subnet.pubsubnet1.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
   associate_public_ip_address = true
 
   tags = {
-    Name = "Terraform1"
+    Name        = "Terraform1"
+    Environment = "dev"
+    Project     = "terraform-assignment"
   }
+}
+
+# Output the Public IP of the EC2 Instance
+output "public_ip" {
+  value = aws_instance.my_server.public_ip
 }
