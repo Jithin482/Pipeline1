@@ -5,18 +5,7 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-# Variables for AWS Credentials
-variable "aws_access_key" {
-  description = "AWS Access Key ID"
-  type        = string
-  sensitive   = true
-}
 
-variable "aws_secret_key" {
-  description = "AWS Secret Access Key"
-  type        = string
-  sensitive   = true
-}
 
 # Create a VPC
 resource "aws_vpc" "my_vpc" {
