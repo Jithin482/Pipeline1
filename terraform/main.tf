@@ -5,20 +5,14 @@ provider "aws" {
 }
 
 resource "aws_instance" "my_server" {
-  ami           = "ami-03fd334507439f4d1"
+  ami           = "ami-03fd334507439f4d1"  # Replace with your desired AMI
   instance_type = "t2.micro"
-  key_name      = aws_key_pair.My_keypair.key_name
   subnet_id     = aws_subnet.pubsubnet1.id
   vpc_security_group_ids = [aws_security_group.my_sg.id]
-  associate_public_ip_address = true 
+  associate_public_ip_address = true
   tags = {
     Name = "Terraform1"
   }
-}
-
-resource "aws_key_pair" "My_keypair" {
-  key_name   = "my-keypair"
-  public_key = file("${path.module}/my-key.pem.pub")  # Use the correct path
 }
 
 resource "aws_vpc" "my_vpc" {
@@ -30,32 +24,9 @@ resource "aws_vpc" "my_vpc" {
 
 resource "aws_subnet" "pubsubnet1" {
   vpc_id     = aws_vpc.my_vpc.id
-  cidr_block = "10.0.2.0/24"
+  cidr_block = "10.0.1.0/24"
   tags = {
-    Name = "Tsubnet"
-  }
-}
-
-resource "aws_route_table" "RT" {
-  vpc_id = aws_vpc.my_vpc.id 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-  tags = {
-    Name = "My_RT"
-  }
-}
-
-resource "aws_route_table_association" "RT" {
-  subnet_id = aws_subnet.pubsubnet1.id 
-  route_table_id = aws_route_table.RT.id
-}
-
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.my_vpc.id
-  tags = {
-    Name = "Tgw"
+    Name = "pubsubnet1"
   }
 }
 
@@ -72,13 +43,6 @@ resource "aws_security_group" "my_sg" {
   ingress {
     from_port   = 80
     to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
