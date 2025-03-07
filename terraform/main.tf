@@ -1,4 +1,13 @@
-
+resource "aws_instance" "my_server" {
+  ami           = "ami-03fd334507439f4d1"  # Replace with your AMI ID
+  instance_type = "t2.micro"               # Replace with your instance type
+  subnet_id     = aws_subnet.pubsubnet1.id
+  vpc_security_group_ids = [aws_security_group.my_sg.id]
+  associate_public_ip_address = true
+  tags = {
+    Name = "Terraform1"
+  }
+}
 provider "aws" {
   region     = "eu-west-1"
   access_key = var.aws_access_key
