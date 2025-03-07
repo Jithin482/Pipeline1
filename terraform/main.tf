@@ -18,7 +18,7 @@ resource "aws_instance" "my_server" {
 
 resource "aws_key_pair" "My_keypair" {
   key_name   = "my-keypair"
-  public_key = file("my-key.pem.pub")  
+  public_key = file("${path.module}/my-key.pem.pub")  # Use the correct path
 }
 
 resource "aws_vpc" "my_vpc" {
